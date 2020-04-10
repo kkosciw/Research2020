@@ -21,10 +21,10 @@ import matplotlib.colors as colors
 import astro_constants as ac
 
 
-def profile_plots_2D(basePath_uniform,particle_property,p_type,desired_redshift,index_of_selected_halo,projection_plane,slice_plane,slice_thickness,bin_number,title_name,save_name):
+def profile_plots_2D(basePath_uniform,particle_property,p_type,desired_redshift,index_of_selected_halo,projection_plane,slice_thickness,bin_number,title_name,save_name):
     #particle_property can equal Density, Temperature, Metallicity
     #projection_plane will be xy,xz,or yz
-    #slice_plane will be the third plane from the projection_plane selected for xy, slice_plane would be z for xz, slice_plane woul#d be y
+    
     boxsize=arepo_package.get_box_size(basePath_uniform)
     desired_redshift_of_selected_halo=desired_redshift
  
@@ -37,9 +37,18 @@ def profile_plots_2D(basePath_uniform,particle_property,p_type,desired_redshift,
     zpos=gas_particle_positions[:,2]
 
     #First Mask
-    left=numpy.average(slice_plane)-(slice_thickness/2.0)
-    right=numpy.average(slice_plane)+(slice_thickness/2.0)
-    mask1=(slice_plane>left)&(slice_plane<right)
+    if projection_plane=='xy':
+        left=numpy.average(zpos)-(slice_thickness/2.0)
+        right=numpy.average(zpos)+(slice_thickness/2.0)
+        mask1=(zpos>left)&(zpos<right)
+    if projection_plane=='xz':
+        left=numpy.average(ypos)-(slice_thickness/2.0)
+        right=numpy.average(ypos)+(slice_thickness/2.0)
+        mask1=(ypos>left)&(ypos<right)
+    if projection_plane=='yz':
+        left=numpy.average(xpos)-(slice_thickness/2.0)
+        right=numpy.average(xpos)+(slice_thickness/2.0)
+        mask1=(xpos>left)&(xpos<right)
  
     xpos=xpos[mask1]
     ypos=ypos[mask1]
@@ -144,4 +153,4 @@ uniform_run='L25n128MUSIC_rerun_zoom_levelmax9_haloindex100_redshift0.00/AREPO'
 #uniform_run='L25n128MUSIC_rerun_zoom_levelmax11_haloindex100_redshift0.00_logbhseedmass5.90_logFOFseedmass10.70/AREPO'
 basePath_uniform=path_to_uniform_run+uniform_run+'/output_BH_NGB_256/'
 
-profile_plots_2D(basePath_uniform,'Density',0,1,0,'xy','z',100,100,'Density z=1','Prof_Package_Test')
+profile_plots_2D(basePath_uniform,'Density',0,1,0,'xy',100,100,'Density z=1','Prof_Package_Test')

@@ -21,7 +21,7 @@ import matplotlib.colors as colors
 import astro_constants as ac
 
 
-def profile_plots_2D(basePath_uniform,particle_property,p_type,desired_redshift,index_of_selected_halo,projection_plane,slice_thickness,bin_number,title_name,save_name):
+def profile_plots_2D(basePath_uniform,desired_particle_property,p_type,desired_redshift,index_of_selected_halo,projection_plane,slice_thickness,bin_number,title_name,save_name):
     #particle_property can equal Density, Temperature, Metallicity
     #projection_plane will be xy,xz,or yz
     
@@ -54,12 +54,13 @@ def profile_plots_2D(basePath_uniform,particle_property,p_type,desired_redshift,
     ypos=ypos[mask1]
     zpos=zpos[mask1]
 
-    if (particle_property=='Metallicity'):
+    if (desired_particle_property=='Metallicity'):
         particle_property='GFM_Metallicity'
         gas_metallicity,output_redshift=arepo_package.get_particle_property_within_groups(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,index_of_selected_halo,group_type='groups',list_all=False)
         gas_metals=gas_metallicity[mask1]/0.0127
- 
-    if (particle_property=='Temperature'):
+        particle_prop=gas_metals
+
+    if (desired_particle_property=='Temperature'):
         particle_property='InternalEnergy'
         particle_internal_energy,output_redshift=arepo_package.get_particle_property_within_groups(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,index_of_selected_halo,group_type='groups',list_all=False)
         particle_property='ElectronAbundance'
@@ -68,12 +69,13 @@ def profile_plots_2D(basePath_uniform,particle_property,p_type,desired_redshift,
         XH = 0.76
         mu=(4*ac.MP)/(1+3*XH+4*XH*particle_electron_abundance[mask1])
         gas_temperature = g_minus_1*(particle_internal_energy[mask1]/ac.KB)*(10**10)*mu
+        particle_prop=gas_temperature
 
-    if (particle_property=='Density'):
+    if (desired_particle_property=='Density'):
         particle_property='Masses'
         particle_mass,output_redshift=arepo_package.get_particle_property_within_groups(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,index_of_selected_halo,group_type='groups',list_all=False) 
-        particle_mass=particle_mass[mask1]*1e10
-
+        particle_prop=particle_mass[mask1]*1e10
+   
     ndx=bin_number
     ndy=bin_number
     ndz=bin_number
@@ -84,44 +86,42 @@ def profile_plots_2D(basePath_uniform,particle_property,p_type,desired_redshift,
     dx=numpy.diff(x)[0]
     dy=numpy.diff(y)[0]
     dz=numpy.diff(z)[0]
-
-
     proj_property=[]
 
     #2nd Mask
     if (projection_plane=='xy'):
-        X,Y=numpy.meshgrid(x,y)
+        First,Second=numpy.meshgrid(x,y)
         for yi in y:
             for xi in x:
                 mask_x=(xpos>(xi-dx/2.0))&(xpos<(xi+dx/2.))
                 mask_y=(ypos>(yi-dy/2.))&(ypos<(yi+dy/2.))
                 mask2=(mask_x) & (mask_y)
-                if (particle_property=='Density'):
-                    proj_property.append(numpy.sum(particle_property[mask2])/(dx*dy*dz))
+                if (desired_particle_property=='Density'):
+                    proj_property.append(numpy.sum(particle_prop[mask2])/(dx*dy*dz))
                 else:
-                    proj_property.append(numpy.average(particle_property[mask2]))
+                    proj_property.append(numpy.average(particle_prop[mask2]))
     if (projection_plane=='xz'):
-        X,Z=numpy.meshgrid(x,z)
+        First,Second=numpy.meshgrid(x,z)
         for zi in z:
             for xi in x:
                 mask_x=(xpos>(xi-dx/2.0))&(xpos<(xi+dx/2.))
                 mask_z=(zpos>(zi-dz/2.))&(zpos<(zi+dz/2.))
                 mask2=(mask_x) & (mask_z)
-                if (particle_property=='Density'):
-                    proj_property.append(numpy.sum(particle_property[mask2])/(dx*dy*dz))
+                if (desired_particle_property=='Density'):
+                    proj_property.append(numpy.sum(particle_prop[mask2])/(dx*dy*dz))
                 else:
-                    proj_property.append(numpy.average(particle_property[mask2]))
+                    proj_property.append(numpy.average(particle_prop[mask2]))
     if (projection_plane=='yz'):
-        Y,Z=numpy.meshgrid(y,z)
+        First,Second=numpy.meshgrid(y,z)
         for zi in z:
             for yi in y:
                 mask_z=(zpos>(zi-dz/2.0))&(zpos<(zi+dz/2.))
                 mask_y=(ypos>(yi-dy/2.))&(ypos<(yi+dy/2.))
                 mask2=(mask_z) & (mask_y)
-                if (particle_property=='Density'):
-                    proj_property.append(numpy.sum(particle_property[mask2])/(dx*dy*dz))
+                if (desired_particle_property=='Density'):
+                    proj_property.append(numpy.sum(particle_prop[mask2])/(dx*dy*dz))
                 else:
-                    proj_property.append(numpy.average(particle_property[mask2]))
+                    proj_property.append(numpy.average(particle_prop[mask2]))
     
     proj_property=numpy.asarray(proj_property)
     proj_property[numpy.isnan(proj_property)]=1e-19
@@ -130,15 +130,19 @@ def profile_plots_2D(basePath_uniform,particle_property,p_type,desired_redshift,
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
+   
 
-    if (particle_property=='Density'):
-        plt.pcolor(X,Y,Z,norm=colors.LogNorm(vmin=min(particle_mass)/(dx*dy*dz), vmax=Proj_property.max()))
+    if (desired_particle_property=='Density'):
+        plt.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=min(particle_prop)/(dx*dy*dz),vmax=Proj_property.max()))
+        cbar=plt.colorbar()
         cbar.set_label('log gas density ($M_{\odot}/(cKpc/h)^3$)')
-    if (particle_property=='Metallicity'):
-        plt.pcolor(X,Y,Z,norm=colors.LogNorm(vmin=min(gas_metals), vmax=Proj_property.max()))
+    if (desired_particle_property=='Metallicity'):
+        plt.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=min(particle_prop),vmax=Proj_property.max()))
+        cbar=plt.colorbar()
         cbar.set_label('log gas metallicity $(Fe/H)/(Fe/H)_{\odot})$')
-    if (particle_property=='Temperature'):
-        plt.pcolor(X,Y,Z,norm=colors.LogNorm(vmin=min(gas_temperature), vmax=Proj_property.max()))
+    if (desired_particle_property=='Temperature'):
+        plt.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=min(particle_prop),vmax=Proj_property.max()))
+        cbar=plt.colorbar()
         cbar.set_label('log gas temperature $K$')
 
     plt.title(title_name)
@@ -153,4 +157,4 @@ uniform_run='L25n128MUSIC_rerun_zoom_levelmax9_haloindex100_redshift0.00/AREPO'
 #uniform_run='L25n128MUSIC_rerun_zoom_levelmax11_haloindex100_redshift0.00_logbhseedmass5.90_logFOFseedmass10.70/AREPO'
 basePath_uniform=path_to_uniform_run+uniform_run+'/output_BH_NGB_256/'
 
-profile_plots_2D(basePath_uniform,'Density',0,1,0,'xy',100,100,'Density z=1','Prof_Package_Test')
+profile_plots_2D(basePath_uniform,'Density',0,0.2,0,'xy',100,100,'Density z=0.2','Prof_Package_Test')

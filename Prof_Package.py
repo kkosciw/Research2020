@@ -136,18 +136,50 @@ def profile_plots_2D(basePath_uniform,desired_particle_property,p_type,desired_r
         plt.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=min(particle_prop)/(dx*dy*dz),vmax=Proj_property.max()))
         cbar=plt.colorbar()
         cbar.set_label('log gas density ($M_{\odot}/(cKpc/h)^3$)')
+        if projection_plane=='xy':
+            plt.xlabel('x(kpc/h)')
+            plt.ylabel('y(kpc/h)')
+        if projection_plane=='xz':
+            plt.xlabel('x(kpc/h)')
+            plt.ylabel('z(kpc/h)')
+        if projection_plane=='yz':
+            plt.xlabel('y(kpc/h)')
+            plt.ylabel('z(kpc/h)')
     if (desired_particle_property=='Metallicity'):
         plt.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=min(particle_prop),vmax=Proj_property.max()))
         cbar=plt.colorbar()
         cbar.set_label('log gas metallicity $(Fe/H)/(Fe/H)_{\odot})$')
+        if projection_plane=='xy':
+            plt.xlabel('x(kpc/h)')
+            plt.ylabel('y(kpc/h)')
+        if projection_plane=='xz':
+            plt.xlabel('x(kpc/h)')
+            plt.ylabel('z(kpc/h)')
+        if projection_plane=='yz':
+            plt.xlabel('y(kpc/h)')
+            plt.ylabel('z(kpc/h)')
     if (desired_particle_property=='Temperature'):
         plt.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=min(particle_prop),vmax=Proj_property.max()))
         cbar=plt.colorbar()
         cbar.set_label('log gas temperature $K$')
+         if projection_plane=='xy':
+            plt.xlabel('x(kpc/h)')
+            plt.ylabel('y(kpc/h)')
+        if projection_plane=='xz':
+            plt.xlabel('x(kpc/h)')
+            plt.ylabel('z(kpc/h)')
+        if projection_plane=='yz':
+            plt.xlabel('y(kpc/h)')
+            plt.ylabel('z(kpc/h)')
+
 
     plt.title(title_name)
     fig.savefig(save_name)
     return 0
+
+
+
+
 
 
 
@@ -157,4 +189,4 @@ uniform_run='L25n128MUSIC_rerun_zoom_levelmax9_haloindex100_redshift0.00/AREPO'
 #uniform_run='L25n128MUSIC_rerun_zoom_levelmax11_haloindex100_redshift0.00_logbhseedmass5.90_logFOFseedmass10.70/AREPO'
 basePath_uniform=path_to_uniform_run+uniform_run+'/output_BH_NGB_256/'
 
-profile_plots_2D(basePath_uniform,'Density',0,0.2,0,'xy',100,100,'Density z=0.2','Prof_Package_Test')
+profile_plots_2D(basePath_uniform,'Density',0,0.2,0,'xz',100,100,'Density z=0.2','Prof_Package_Test')

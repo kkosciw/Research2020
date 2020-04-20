@@ -22,7 +22,7 @@ import astro_constants as ac
 
 
 
-def profile_plots_2D(basePath_uniform,desired_particle_property,p_type,desired_redshift,index_of_selected_halo,projection_plane,slice_thickness,bin_number,box_edges,title_name,save_name):
+def profile_plots_2D(basePath_uniform,desired_particle_property,p_type,desired_redshift,projection_plane,slice_thickness,bin_number,box_edges,title_name,save_name):
     #particle_property can equal Density, Temperature, Metallicity
     #projection_plane will be xy,xz,or yz
     
@@ -31,7 +31,7 @@ def profile_plots_2D(basePath_uniform,desired_particle_property,p_type,desired_r
     
     particle_property='Coordinates'
     p_type=0
-    gas_particle_positions,output_redshift=arepo_package.get_particle_property_within_groups(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,index_of_selected_halo,group_type='groups',list_all=True)
+    gas_particle_positions,output_redshift=arepo_package.get_particle_property(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,list_all=True)
    
     
 
@@ -71,15 +71,15 @@ def profile_plots_2D(basePath_uniform,desired_particle_property,p_type,desired_r
 
     if (desired_particle_property=='Metallicity'):
         particle_property='GFM_Metallicity'
-        gas_metallicity,output_redshift=arepo_package.get_particle_property_within_groups(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,index_of_selected_halo,group_type='groups',list_all=False)
+        gas_metallicity,output_redshift=arepo_package.get_particle_property(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,list_all=False)
         gas_metals=gas_metallicity[mask2]/0.0127
         particle_prop=gas_metals
 
     if (desired_particle_property=='Temperature'):
         particle_property='InternalEnergy'
-        particle_internal_energy,output_redshift=arepo_package.get_particle_property_within_groups(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,index_of_selected_halo,group_type='groups',list_all=False)
+        particle_internal_energy,output_redshift=arepo_package.get_particle_property(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,list_all=False)
         particle_property='ElectronAbundance'
-        particle_electron_abundance,output_redshift=arepo_package.get_particle_property_within_groups(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,index_of_selected_halo,group_type='groups',list_all=False)
+        particle_electron_abundance,output_redshift=arepo_package.get_particle_property(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,list_all=False)
         g_minus_1 = (5.0/3.0) - 1.0
         XH = 0.76
         mu=(4*ac.MP)/(1+3*XH+4*XH*particle_electron_abundance[mask2])
@@ -88,9 +88,10 @@ def profile_plots_2D(basePath_uniform,desired_particle_property,p_type,desired_r
 
     if (desired_particle_property=='Density'):
         particle_property='Masses'
-        particle_mass,output_redshift=arepo_package.get_particle_property_within_groups(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,index_of_selected_halo,group_type='groups',list_all=False) 
-        particle_prop=particle_mass[mask2]*1e10
-   
+        particle_mass,output_redshift=arepo_package.get_particle_property(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,list_all=False) 
+        particle_mass=particle_mass[mask1]*1e10
+        particle_prop=particle_mass[mask2]
+
     ndx=bin_number
     ndy=bin_number
     ndz=bin_number
@@ -210,17 +211,17 @@ def choose_center(desired_center,cond,box_size):
 
 path_to_uniform_run='/ufrc/lblecha/aklantbhowmick/NEW_AREPO_RUNS/'
 
-uniform_run='L25n128MUSIC_rerun_zoom_levelmax9_haloindex100_redshift0.00/AREPO'
-#uniform_run='L25n128MUSIC_rerun_zoom_levelmax11_haloindex100_redshift0.00_logbhseedmass5.90_logFOFseedmass10.70/AREPO'
+#uniform_run='L25n128MUSIC_rerun_zoom_levelmax10_haloindex100_redshift0.00/AREPO'
+uniform_run='L25n128MUSIC_rerun_zoom_levelmax11_haloindex100_redshift0.00_logbhseedmass5.90_logFOFseedmass10.70/AREPO'
 basePath_uniform=path_to_uniform_run+uniform_run+'/output_BH_NGB_256/'
 
 
-xcoord=15000
-ycoord=17000
-zcoord=16000
+xcoord=11700
+ycoord=14780
+zcoord=12175
 Coordinates=numpy.asarray([xcoord,ycoord,zcoord])
-box_size=10000
+box_size=100
 box_mask = choose_center(Coordinates,'Specific_Coordinates',box_size)
 print(box_mask)
-profile_plots_2D(basePath_uniform,'Density',0,0.2,0,'xy',100,100,box_mask,'Density z=0.2','Prof_Package_Test')
+profile_plots_2D(basePath_uniform,'Density',0,0.2,'xy',100,100,box_mask,'Density z=0.2','Prof_Package_Test')
 

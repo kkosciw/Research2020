@@ -23,7 +23,7 @@ import astro_constants as ac
 
 
 def profile_plots_2D(basePath_uniform,desired_particle_property,p_type,desired_redshift,projection_plane,slice_thickness,bin_number,box_edges,title_name,save_name):
-    #particle_property can equal Density, Temperature, Metallicity
+    #particle_property can equal Density, Temperature, Metallicity, Velocity
     #projection_plane will be xy,xz,or yz
     
     
@@ -72,8 +72,8 @@ def profile_plots_2D(basePath_uniform,desired_particle_property,p_type,desired_r
     if (desired_particle_property=='Metallicity'):
         particle_property='GFM_Metallicity'
         gas_metallicity,output_redshift=arepo_package.get_particle_property(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,list_all=False)
-        gas_metals=gas_metallicity[mask2]/0.0127
-        particle_prop=gas_metals
+        gas_metals=gas_metallicity[mask1]/0.0127
+        particle_prop=gas_metals[mask2]
 
     if (desired_particle_property=='Temperature'):
         particle_property='InternalEnergy'
@@ -82,15 +82,26 @@ def profile_plots_2D(basePath_uniform,desired_particle_property,p_type,desired_r
         particle_electron_abundance,output_redshift=arepo_package.get_particle_property(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,list_all=False)
         g_minus_1 = (5.0/3.0) - 1.0
         XH = 0.76
-        mu=(4*ac.MP)/(1+3*XH+4*XH*particle_electron_abundance[mask2])
-        gas_temperature = g_minus_1*(particle_internal_energy[mask2]/ac.KB)*(10**10)*mu
-        particle_prop=gas_temperature
+        mu=(4*ac.MP)/(1+3*XH+4*XH*particle_electron_abundance[mask1])
+        gas_temperature = g_minus_1*(particle_internal_energy[mask1]/ac.KB)*(10**10)*mu
+        particle_prop=gas_temperature[mask2]
 
     if (desired_particle_property=='Density'):
         particle_property='Masses'
         particle_mass,output_redshift=arepo_package.get_particle_property(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,list_all=False) 
         particle_mass=particle_mass[mask1]*1e10
         particle_prop=particle_mass[mask2]
+
+    if (desired_particle_property=='Velocity'):
+       particle_property='Velocities'
+       particle_velocities,output_redshift=arepo_package.get_particle_property(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,list_all=False)
+       xvel=particle_velocities[:,0]
+       yvel=particle_velocities[:,1]
+       zvel=particle_velocities[:,2]
+       mag_vel=numpy.sqrt((xvel[mask1]**2)+(yvel[mask1]**2)+(zvel[mask1]**2))
+       particle_prop=mag_vel[mask2]
+
+
 
     ndx=bin_number
     ndy=bin_number
@@ -187,6 +198,20 @@ def profile_plots_2D(basePath_uniform,desired_particle_property,p_type,desired_r
         if projection_plane=='yz':
             plt.xlabel('y(kpc/h)')
             plt.ylabel('z(kpc/h)')
+    if (desired_particle_property=='Velocity'):
+        plt.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=min(particle_prop),vmax=Proj_property.max()))
+        cbar=plt.colorbar()
+        cbar.set_label('gas velocity $km \sqrt{a}/s$')
+        if projection_plane=='xy':
+            plt.xlabel('x(kpc/h)')
+            plt.ylabel('y(kpc/h)')
+        if projection_plane=='xz':
+            plt.xlabel('x(kpc/h)')
+            plt.ylabel('z(kpc/h)')
+        if projection_plane=='yz':
+            plt.xlabel('y(kpc/h)')
+            plt.ylabel('z(kpc/h)')
+
 
 
     plt.title(title_name)
@@ -211,17 +236,17 @@ def choose_center(desired_center,cond,box_size):
 
 path_to_uniform_run='/ufrc/lblecha/aklantbhowmick/NEW_AREPO_RUNS/'
 
-#uniform_run='L25n128MUSIC_rerun_zoom_levelmax10_haloindex100_redshift0.00/AREPO'
+#uniform_run='L25n128MUSIC_rerun_zoom_levelmax9_haloindex100_redshift0.00/AREPO'
 uniform_run='L25n128MUSIC_rerun_zoom_levelmax11_haloindex100_redshift0.00_logbhseedmass5.90_logFOFseedmass10.70/AREPO'
 basePath_uniform=path_to_uniform_run+uniform_run+'/output_BH_NGB_256/'
 
 
-xcoord=11700
-ycoord=14780
+xcoord=11675
+ycoord=14600
 zcoord=12175
 Coordinates=numpy.asarray([xcoord,ycoord,zcoord])
-box_size=100
+box_size=30000
 box_mask = choose_center(Coordinates,'Specific_Coordinates',box_size)
 print(box_mask)
-profile_plots_2D(basePath_uniform,'Density',0,0.2,'xy',100,100,box_mask,'Density z=0.2','Prof_Package_Test')
+profile_plots_2D(basePath_uniform,'Density',0,0.2,'xy',100,100,box_mask,'Density Level Max 11 z=0.2','Prof_Package_Test')
 

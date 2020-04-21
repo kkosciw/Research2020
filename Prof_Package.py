@@ -218,8 +218,9 @@ def profile_plots_2D(basePath_uniform,desired_particle_property,p_type,desired_r
     fig.savefig(save_name)
     return 0
 
-def choose_center(desired_center,cond,box_size):
-
+def choose_center(desired_center,cond,desired_redshift,box_size):
+    desired_redshift_of_selected_halo=desired_redshift
+ 
     if cond=='Specific_Coordinates':
         #Must define desired x,y,z and make array named Specific_Coordinates
         #Define box_size in kpc
@@ -230,7 +231,26 @@ def choose_center(desired_center,cond,box_size):
             masks.append(left)
             masks.append(right) 
         box_mask = numpy.asarray(masks)   
- 
+
+    if cond=='Specific_Black_Hole':
+        #Must define p_id for black hole
+        bh_IDs,output_redshift=arepo_package.get_particle_property(basePath_uniform,'ParticleIDs',5,desired_redshift_of_selected_halo,list_all=False)
+        bh_positions,output_redshift=arepo_package.get_particle_property(basePath_uniform,'Coordinates',5,desired_redshift_of_selected_halo,list_all=False)       
+        bh_masses,output_redshift=arepo_package.get_particle_property(basePath_uniform,'Masses',5,desired_redshift_of_selected_halo,list_all=False)
+        center=(bh_positions[bh_IDs==p_id])
+        print(center)
+        centxpos=center[:,0]
+        centypos=center[:,1]
+        centzpos=center[:,2]
+        centcoord=numpy.asarray([centxpos,centypos,centzpos])
+        masks=[]
+        for i in centcoord: 
+            left=i-(box_size/2.0)
+            right=i+(box_size/2.0)
+            masks.append(left)
+            masks.append(right)
+        box_mask = numpy.asarray(masks)
+
     return box_mask
 
 
@@ -240,13 +260,20 @@ path_to_uniform_run='/ufrc/lblecha/aklantbhowmick/NEW_AREPO_RUNS/'
 uniform_run='L25n128MUSIC_rerun_zoom_levelmax11_haloindex100_redshift0.00_logbhseedmass5.90_logFOFseedmass10.70/AREPO'
 basePath_uniform=path_to_uniform_run+uniform_run+'/output_BH_NGB_256/'
 
+#xcoord=11675
+#ycoord=14600
+#zcoord=12175
+#Coordinates=numpy.asarray([xcoord,ycoord,zcoord])
+box_size=30
+#box_mask = choose_center(Coordinates,'Specific_Coordinates',box_size)
 
-xcoord=11675
-ycoord=14600
-zcoord=12175
-Coordinates=numpy.asarray([xcoord,ycoord,zcoord])
-box_size=30000
-box_mask = choose_center(Coordinates,'Specific_Coordinates',box_size)
+
+p_id=1056102916
+box_mask=choose_center(p_id,'Specific_Black_Hole',0.2,box_size)
 print(box_mask)
-profile_plots_2D(basePath_uniform,'Density',0,0.2,'xy',100,100,box_mask,'Density Level Max 11 z=0.2','Prof_Package_Test')
+
+profile_plots_2D(basePath_uniform,'Density',0,0.2,'xy',100,200,box_mask,'Density Level Max 11 z=0.2','Prof_Package_Test')
+
+
+
 

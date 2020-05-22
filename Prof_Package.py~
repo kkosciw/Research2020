@@ -43,14 +43,14 @@ def profile_plots_2D(basePath_uniform,desired_property,desired_redshift,projecti
     print(numpy.median(xpos))
     print(numpy.median(ypos))
     print(numpy.median(zpos))
-    '''    
         
+    '''    
     #Rotated Coordinates
     func=numpy.vectorize(gal_rotation)
     xpos=func(basePath_uniform,desired_redshift,'xpos')
     ypos=func(basePath_uniform,desired_redshift,'ypos')
     zpos=func(basePath_uniform,desired_redshift,'zpos')    
-     
+    
 
     #First Mask
     mask1=(xpos>box_mask[0])&(xpos<box_mask[1])&(ypos>box_mask[2])&(ypos<box_mask[3])&(zpos>box_mask[4])&(zpos<box_mask[5])
@@ -176,17 +176,18 @@ def profile_plots_2D(basePath_uniform,desired_property,desired_redshift,projecti
         if projection_plane=='xy':
             plt.xlabel('x(kpc/h)')
             plt.ylabel('y(kpc/h)')
-            #bh=plt.Circle((bhcoord[0],bhcoord[1]),0.5,color='black')
-            #ax.add_artist(bh)
+            bh=plt.Circle((bhcoord[0],bhcoord[1]),0.5,color='black')
+            ax.add_artist(bh)
         if projection_plane=='xz':
             plt.xlabel('x(kpc/h)')
             plt.ylabel('z(kpc/h)')
-            #bh=plt.Circle((bhcoord[0],bhcoord[2]),0.5,color='black')
-            #ax.add_artist(bh)
+            bh=plt.Circle((bhcoord[0],bhcoord[2]),0.5,color='black')
+            ax.add_artist(bh)
         if projection_plane=='yz':
             plt.xlabel('y(kpc/h)')
             plt.ylabel('z(kpc/h)')
-            #bh=plt.Circle((bhcoord[1],bhcoord[2]),0.5,color='black')
+            bh=plt.Circle((bhcoord[1],bhcoord[2]),0.5,color='black')
+            ax.add_artist(bh)
     if (desired_property=='Metallicity'):
         plt.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=min(particle_prop),vmax=Proj_property.max()))
         cbar=plt.colorbar()
@@ -286,6 +287,7 @@ def choose_center(desired_center,cond,desired_redshift,box_size):
         box_mask = numpy.asarray(masks)
 
     if cond=='Galaxy_Rotation':
+        '''
         func=numpy.vectorize(gal_rotation)
         xpos=func(basePath_uniform,desired_redshift,'xpos')
         #print(xpos)
@@ -299,8 +301,13 @@ def choose_center(desired_center,cond,desired_redshift,box_size):
         xpos=numpy.average(xpos)
         ypos=numpy.average(ypos)
         zpos=numpy.average(zpos)
+        '''
+        com=ang_mom(basePath_uniform,desired_redshift)[4]
+        xpos=com[0]
+        ypos=com[1]
+        zpos=com[2]
         coords=[xpos,ypos,zpos]
-        print(coords)
+        #print(coords)
         masks=[]
         for i in coords:
             left=i-(box_size/2.0)
@@ -308,18 +315,14 @@ def choose_center(desired_center,cond,desired_redshift,box_size):
             masks.append(left)
             masks.append(right)
         box_mask = numpy.asarray(masks)
-        '''
-        bh_IDs,output_redshift=arepo_package.get_particle_property(basePath_uniform,'ParticleIDs',5,desired_redshift_of_selected_halo,list_all=False)
-        bh_positions,output_redshift=arepo_package.get_particle_property(basePath_uniform,'Coordinates',5,desired_redshift_of_selected_halo,list_all=False)
-        center=(bh_positions[bh_IDs==p_id])
-        print(center)
-        centxpos=center[:,0]
-        centypos=center[:,1]
-        centzpos=center[:,2]
-        centcoord=numpy.asarray([centxpos,centypos,centzpos])
-        '''
+        
+        func=numpy.vectorize(bh_rotation)
+        xpos=func(basePath_uniform,desired_redshift,'xpos')
+        ypos=func(basePath_uniform,desired_redshift,'ypos')
+        zpos=func(basePath_uniform,desired_redshift,'zpos')
+        centcoord=[xpos,ypos,zpos]
 
-    return box_mask#,centcoord
+    return box_mask,centcoord
 
 
 
@@ -338,17 +341,23 @@ def ang_mom(basePath_uniform,desired_redshift):
     zpos=particle_positions[:,2]
     #print('avg z',numpy.average(zpos))
     r_pos=[xpos,ypos,zpos]
-    r_pos=numpy.reshape(r_pos,(len(xpos),3))
+    r_pos=numpy.asarray(r_pos)
+    #print(r_pos.shape)
+    r_pos=numpy.transpose(r_pos)
+    #print(r_pos.shape)
 
+    
     particle_property='Masses'
     particle_mass,output_redshift=arepo_package.get_particle_property(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,list_all=False)
     particle_mass=particle_mass*1e10
-
+    
     particle_property='Velocities'
     particle_velocities,output_redshift=arepo_package.get_particle_property(basePath_uniform,particle_property,p_type,desired_redshift_of_selected_halo,list_all=False)
     xvel=particle_velocities[:,0]/(3.0886e16) #units switched from km/s to kpc/s
     yvel=particle_velocities[:,1]/(3.0886e16)
     zvel=particle_velocities[:,2]/(3.0886e16)
+    vel=numpy.asarray([xvel,yvel,zvel])
+   
 
     #Calculate angular momentum
     Lx=(ypos*zvel-zpos*yvel)*particle_mass
@@ -364,26 +373,56 @@ def ang_mom(basePath_uniform,desired_redshift):
     L=[Lx,Ly,Lz]
     L=numpy.asarray(L)
     #print('L',L)
-    L_mag=numpy.sqrt((Lx**2)+(Ly**2)+(Lz**2))#Msol*kpc**2/s
+    #L_mag=numpy.sqrt((Lx**2)+(Ly**2)+(Lz**2))#Msol*kpc**2/s
 
-    L_unit=L/L_mag 
+    #L_unit=L/L_mag 
+    #print('L_unit',L_unit.shape)
+   
+    num=numpy.zeros((len(particle_mass),3))
+    den=numpy.zeros((len(particle_mass),1))
+    #Center of Mass of Galaxy
+    for i in range(len(xpos)):
+        num[i,:]=((particle_mass[i]*r_pos[i]))
+        den[i,0]=(particle_mass[i])
+   
+    com=sum(num)/sum(den)
+    com=numpy.asarray(com)
+    print(com)
+    
+    #Momentum of galaxy
+    p_gal=vel*particle_mass
+    #print('p_gal=',p_gal)
+    p_gal=numpy.transpose(p_gal)
+    p_gal=numpy.sum(p_gal,axis=0) #Msol*kpc**2/s
+    #print('p_gal_sum',p_gal)
 
-    gal_mass=sum(particle_mass)
+    L_gal=numpy.cross(com,p_gal)
+    #L_gal_mag=numpy.sqrt((L_gal[0]**2)+(L_gal[1]**2)+(L_gal[2]**2))
+    #L_gal=L_gal/L_gal_mag
+    #print('L_gal',L_gal.shape)
+     
+    L=L-L_gal
+    L_unit=numpy.sqrt((L[0]**2)+(L[1]**2)+(L[2]**2))
+    L=L/L_unit
+    #L=[1,0,0]
+    A=[1,1,1] 
 
-    L_gal=L/gal_mass #Msol*kpc**2/s    
+    A_mag=numpy.sqrt((A[0]**2)+(A[1]**2)+(A[2]**2))
 
-    return r_pos,L_unit
+    A_unit=A/A_mag
+    #print('A_unit',A_unit.shape)  
+
+    return r_pos,L,A_unit,L_gal,com
 
 def gal_rotation(basePath_unifrom,desired_redshift,cond):
     #cond is xpos,ypos,or zpos
     desired_redshift_of_selected_halo=desired_redshift
 
-    r_pos,L=ang_mom(basePath_uniform,desired_redshift)
+    r_pos,L,A,L_gal,com=ang_mom(basePath_uniform,desired_redshift)
     #L=ang_mom(basePath_uniform,desired_redshift)[1]
 
 
     #Rotate the galaxy around the z-axis
-    A=[1,1,1]
 
     LxA=numpy.cross(L,A)
     #print('LxA',LxA)
@@ -394,42 +433,113 @@ def gal_rotation(basePath_unifrom,desired_redshift,cond):
     #print(numpy.dot(L,LxLxA))
     #print(numpy.dot(LxA,LxLxA))
 
-
     if (cond=='xpos'):
         return numpy.dot(r_pos,LxA)
     if (cond=='ypos'):
          return numpy.dot(r_pos,LxLxA)
     if (cond=='zpos'):   
         return numpy.dot(r_pos,L)   
-'''    
-def bh_rotation(basePath_uniform,desired_redshift,cond):
-    #cond is xpos,ypos,or zpos
-    desired_redshift_of_selected_halo=desired_redshift
-'''
     
-        
+def bh_ang_mom(basePath_uniform,desired_redshift,p_id):
+    desired_redshift_of_selected_halo=desired_redshift
+  
+    bh_IDs,output_redshift=arepo_package.get_particle_property(basePath_uniform,'ParticleIDs',5,desired_redshift_of_selected_halo,list_all=False)
+    bh_positions,output_redshift=arepo_package.get_particle_property(basePath_uniform,'Coordinates',5,desired_redshift_of_selected_halo,list_all=False)
+    center=(bh_positions[bh_IDs==p_id])
+    #print(center)
+    xpos=center[:,0]
+    ypos=center[:,1]
+    zpos=center[:,2]
+    centcoord=numpy.asarray([xpos,ypos,zpos])
+    centcoord=numpy.reshape(centcoord,(len(xpos),3))
+
+
+    bh_masses,output_redshift=arepo_package.get_particle_property(basePath_uniform,'Masses',5,desired_redshift_of_selected_halo,list_all=False)
+    bh_mass=(bh_masses[bh_IDs==p_id])
+    bh_velocities,output_redshift=arepo_package.get_particle_property(basePath_uniform,'Velocities',5,desired_redshift_of_selected_halo,list_all=False)
+    bh_velocity=(bh_velocities[bh_IDs==p_id])
+    xvel=bh_velocity[:,0]/(3.0886e16) #units switched from km/s to kpc/s
+    yvel=bh_velocity[:,1]/(3.0886e16)
+    zvel=bh_velocity[:,2]/(3.0886e16)
+
+    #Calculate angular momentum
+    Lx=(ypos*zvel-zpos*yvel)*bh_mass
+    #print(Lx)
+    Lx=sum(Lx)
+    Ly=(xpos*zvel-zpos*xvel)*bh_mass
+    #print(Ly)
+    Ly=sum(Ly)
+    Lz=(xpos*yvel-ypos*xvel)*bh_mass
+    #print(Lz)
+    Lz=sum(Lz)
+
+    L=[Lx,Ly,Lz]
+    L=numpy.asarray(L)
+    #print('L',L)
+    L_mag=numpy.sqrt((Lx**2)+(Ly**2)+(Lz**2))#Msol*kpc**2/s
+
+    L_unit=L/L_mag
+
+    A=[1,1,1]
+
+    A_mag=numpy.sqrt((A[0]**2)+(A[1]**2)+(A[2]**2))
+
+    A_unit=A/A_mag
+
+
+    return centcoord,L_unit,A_unit 
+
+def bh_rotation(basePath_uniform,desired_redshift,cond):
+    desired_redshift_of_selected_halo=desired_redshift
+
+    centcoord,L,A=bh_ang_mom(basePath_uniform,desired_redshift,p_id)
+    #L=ang_mom(basePath_uniform,desired_redshift)[1]
+
+
+    #Rotate the galaxy around the z-axis
+    LxA=numpy.cross(L,A)
+    #print('LxA',LxA)
+    LxLxA=numpy.cross(L,LxA)
+    #print('LxLxA',LxLxA)
+
+    #print(numpy.dot(L,LxA))
+    #print(numpy.dot(L,LxLxA))
+    #print(numpy.dot(LxA,LxLxA))
+
+
+    if (cond=='xpos'):
+        return numpy.dot(centcoord,LxA)
+    if (cond=='ypos'):
+         return numpy.dot(centcoord,LxLxA)
+    if (cond=='zpos'):
+        return numpy.dot(centcoord,L)
+     
     
 path_to_uniform_run='/ufrc/lblecha/aklantbhowmick/NEW_AREPO_RUNS/'
 
-#uniform_run='L25n128MUSIC_rerun_zoom_levelmax9_haloindex100_redshift0.00/AREPO'
-uniform_run='L25n128MUSIC_rerun_zoom_levelmax11_haloindex100_redshift0.00_logbhseedmass5.90_logFOFseedmass10.70/AREPO'
+uniform_run='L25n128MUSIC_rerun_zoom_levelmax9_haloindex100_redshift0.00/AREPO'
+#uniform_run='L25n128MUSIC_rerun_zoom_levelmax11_haloindex100_redshift0.00_logbhseedmass5.90_logFOFseedmass10.70/AREPO'
 basePath_uniform=path_to_uniform_run+uniform_run+'/output_BH_NGB_256/'
-
-#xcoord=11675
-#ycoord=14600
-#zcoord=12175
-#Coordinates=numpy.asarray([xcoord,ycoord,zcoord])
-box_size=400
-#box_mask = choose_center(Coordinates,'Specific_Coordinates',box_size)
-
-
-p_id=1056102916
-box_mask=choose_center(p_id,'Galaxy_Rotation',0.2,box_size)
+'''
+xcoord=-167
+ycoord=-14755
+zcoord=11792
+Coordinates=numpy.asarray([xcoord,ycoord,zcoord])
+box_size=1000
+box_mask = choose_center(Coordinates,'Specific_Coordinates',0.2,box_size)
 print(box_mask)
+'''
+p_id=1002600983
+#p_id=1005831581
+#p_id=1056102916
+box_size=5000
+
+box_mask,bhcoord=choose_center(p_id,'Galaxy_Rotation',0.2,box_size)
+print(box_mask)
+print(bhcoord)
 
 
-
-profile_plots_2D(basePath_uniform,'Density',0.2,'yz',100,200,box_mask,False,'Density Level Max 11 z=0.2','Prof_Package_Test')
+profile_plots_2D(basePath_uniform,'Density',0.2,'xy',100,200,box_mask,bhcoord,'Density Level Max 9 z=0.2','Prof_Package_Test')
 
 
 

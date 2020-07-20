@@ -61,8 +61,7 @@ def orient_plane(positions,perpendicular_vector):
     ypos_new=numpy.dot(positions,LxLxA)
 
     new_positions=numpy.transpose(numpy.array([xpos_new,ypos_new,zpos_new]))
-    print(new_positions)
-    print('is this a metallica?')
+    
     return new_positions
 
 def extract_slice(basePath,p_type,desired_center,desired_redshift,field,planeofsky_dimensions=(1000,1000),lineofsight_dimension=20,plane='xy',orient=0):
@@ -74,7 +73,7 @@ def extract_slice(basePath,p_type,desired_center,desired_redshift,field,planeofs
     if (field=='Metallicity'):
         metallicity,output_redshift=arepo_package.get_particle_property(basePath,'GFM_Metallicity',p_type,desired_redshift,list_all=False)  
         metallicity/=0.0127
-        print(metallicity)
+        #print(metallicity)
         particle_property=metallicity        
     if (field=='Temperature'):
         internal_energy,output_redshift=arepo_package.get_particle_property(basePath,'InternalEnergy',p_type,desired_redshift,list_all=False)
@@ -84,7 +83,6 @@ def extract_slice(basePath,p_type,desired_center,desired_redshift,field,planeofs
         mu=(4*ac.MP)/(1+3*XH+4*XH*electron_abundance)
         gas_temperature = g_minus_1*(internal_energy/ac.KB)*(10**10)*mu
         #print(gas_temperature)
-        #print(output_redshift)
         particle_property=gas_temperature
     if (field=='Velocity Magnitude'):
         velocity,output_redshift=arepo_package.get_particle_property(basePath,'Velocities',p_type,desired_redshift,list_all=False) 
@@ -95,14 +93,12 @@ def extract_slice(basePath,p_type,desired_center,desired_redshift,field,planeofs
         particle_property=mag_vel
     print(output_redshift)
     positions_relative_to_center=positions-numpy.ravel(desired_center)
-    #print(positions_relative_to_center[:,0])   
+      
     if (orient):
         positions_relative_to_center=orient_plane(positions_relative_to_center,perpendicular_vector)
-        #print('help me beech!') 
+         
     if (plane=='xy'):
         planeofsky_pos1=positions_relative_to_center[:,0]
-        #print(planeofsky_pos1)
-        #print 'a'
         planeofsky_pos2=positions_relative_to_center[:,1]
         lineofsight_pos=positions_relative_to_center[:,2]
         
@@ -117,7 +113,7 @@ def extract_slice(basePath,p_type,desired_center,desired_redshift,field,planeofs
         lineofsight_pos=positions_relative_to_center[:,0]
         
     observable_positions=numpy.transpose(numpy.array([planeofsky_pos1,planeofsky_pos2,lineofsight_pos]))
-    #print planeofsky_dimensions[0]
+    
     mask_planeofsky_1=numpy.abs(planeofsky_pos1)<planeofsky_dimensions[0]/2
     mask_planeofsky_2=numpy.abs(planeofsky_pos2)<planeofsky_dimensions[1]/2
     mask_lineofsight=numpy.abs(lineofsight_pos)<lineofsight_dimension/2
@@ -165,9 +161,9 @@ def visualize(final_positions,final_property,number_of_pixels,field):
        
 
     if (field=='Density'):
-        print("making")
-        fig_object=ax.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=min(proj_property[proj_property>0]),vmax=Proj_property.max()),cmap='Greys_r')
-        #fig_object=ax.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=4e4,vmax=Proj_property.max()),cmap='Greys_r')
+        print("making density")
+        #fig_object=ax.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=min(proj_property[proj_property>0]),vmax=Proj_property.max()),cmap='Greys_r')
+        fig_object=ax.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=1e3,vmax=1e7),cmap='Greys_r')
         cbar=fig.colorbar(fig_object,ax=ax)
         cbar.set_label('log gas density ($M_{\odot}/(cKpc/h)^3$)',fontsize=15)
         ax.set_xlabel('Plane of sky 1',fontsize=15)
@@ -178,7 +174,7 @@ def visualize(final_positions,final_property,number_of_pixels,field):
     if (field=='Metallicity'):
         print('making metal')
         #fig_object=ax.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=min(final_property),vmax=Proj_property.max()),cmap='plasma')
-        fig_object=ax.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=1e-8,vmax=1e-1),cmap='plasma')
+        fig_object=ax.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=1e-8,vmax=1e0),cmap='plasma')
         cbar=fig.colorbar(fig_object,ax=ax)
         cbar.set_label('log gas metallicity $(Fe/H)/(Fe/H)_{\odot}$',fontsize=15)
         #cbar.ax.set_ylim([cbar.norm(10e1),cbar.norm(10e-7)])
@@ -186,6 +182,7 @@ def visualize(final_positions,final_property,number_of_pixels,field):
         ax.set_ylabel('Plane of sky 2',fontsize=15)
 
     if (field=='Temperature'):
+        print('making temperature')
         #fig_object=ax.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=min(final_property),vmax=Proj_property.max()),cmap='hot')
         fig_object=ax.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=1e2,vmax=1e7),cmap='hot')
         cbar=fig.colorbar(fig_object,ax=ax)
@@ -194,7 +191,9 @@ def visualize(final_positions,final_property,number_of_pixels,field):
         ax.set_ylabel('Plane of sky 2',fontsize=15)
  
     if (field=='Velocity Magnitude'):
-        fig_object=ax.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=min(final_property),vmax=Proj_property.max()),cmap='viridis')
+        print('making velocity mag')
+        #fig_object=ax.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=min(final_property),vmax=Proj_property.max()),cmap='viridis')
+        fig_object=ax.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=1e1,vmax=1e3),cmap='viridis')
         cbar=fig.colorbar(fig_object,ax=ax)
         cbar.set_label('log gas velocity magnitude $km \sqrt{a}/s$',fontsize=15)
         ax.set_xlabel('Plane of sky 1',fontsize=15)
@@ -205,8 +204,6 @@ def stellar_ang_mom(basePath,desired_redshift,desired_center,box_length=40):
     p_type=4
     positions,output_redshift=arepo_package.get_particle_property(basePath,'Coordinates',p_type,desired_redshift,list_all=False)       
     masses,output_redshift=arepo_package.get_particle_property(basePath,'Masses',p_type,desired_redshift,list_all=False)
-    #print('masses')
-    #print(masses)
     velocities,output_redshift=arepo_package.get_particle_property(basePath,'Velocities',p_type,desired_redshift,list_all=False)
     masses*=1e10
     velocities/=3.0886e16
@@ -225,11 +222,6 @@ def stellar_ang_mom(basePath,desired_redshift,desired_center,box_length=40):
     mask_y=numpy.abs(ypos-center[1])<box_length/2
     mask_z=numpy.abs(zpos-center[2])<box_length/2
     mask=(mask_x&mask_y)&mask_z
-    #numpy.set_printoptions(threshold=numpy.inf)
-    #print(numpy.abs(xpos-center[0]))
-    #print(numpy.abs(ypos-center[1]))
-    #print(numpy.abs(zpos-center[2]))
-    #print(mask)
     xvel=xvel[mask]
     yvel=yvel[mask]
     zvel=zvel[mask]
@@ -239,7 +231,7 @@ def stellar_ang_mom(basePath,desired_redshift,desired_center,box_length=40):
     zpos=zpos[mask]
 
     masses=masses[mask]
-    #print('mass mask',masses)    
+    
     #Calculate angular momentum
     Lx=(ypos*zvel-zpos*yvel)*masses
     Lx=sum(Lx)
@@ -255,15 +247,11 @@ def stellar_ang_mom(basePath,desired_redshift,desired_center,box_length=40):
     p_gal=numpy.sum(p_particles,axis=0)
 
     num=numpy.transpose(numpy.array([xpos*masses,ypos*masses,zpos*masses]))
-    #print(num)
-    #print('sup?')
     com=numpy.sum(num,axis=0)/numpy.sum(masses)
     
 
     L_orbital=numpy.cross(com,p_gal)
 
-
-     
     L_spin=L_total-L_orbital
 
 
@@ -281,25 +269,21 @@ def line_plots(basePath,desired_redshift,p_type,field):
 
 #path_to_uniform_run='/blue/lblecha/aklantbhowmick/NEW_AREPO_RUNS/'
 path_to_uniform_run='/blue/lblecha/aklantbhowmick/GAS_BASED_SEED_MODEL_ZOOM_RUNS4/'
+#Old Sims
+#uniform_run='L25n128MUSIC_rerun_zoom_levelmax9_haloindex100_redshift0.00/AREPO'
 #uniform_run='L25n128MUSIC_rerun_zoom_levelmax10_haloindex100_redshift0.00/AREPO'
 #uniform_run='L25n128MUSIC_rerun_zoom_levelmax11_haloindex100_redshift0.00_logbhseedmass5.90_logFOFseedmass10.70/AREPO'
-
+#basePath=path_to_uniform_run+uniform_run+'/output_BH_NGB_256/'
+#NewSims
 #uniform_run='density_and_metallicity_based_criterion_zoom_levelmin7_levelmax9_haloindex4_redshift5.00_logbhseedmass5.90_NSC/AREPO/'
 #uniform_run='density_and_metallicity_based_criterion_zoom_levelmin7_levelmax10_haloindex4_redshift5.00_logbhseedmass5.00_NSC/AREPO/'
 uniform_run='density_and_metallicity_based_criterion_zoom_levelmin7_levelmax11_haloindex4_redshift5.00_logbhseedmass4.10_NSC/AREPO/'
-
-#basePath=path_to_uniform_run+uniform_run+'/output_BH_NGB_256/'
 #basePath=path_to_uniform_run+uniform_run+'output_upto_4'
+#Use for Lev Max 11 only
 basePath=path_to_uniform_run+uniform_run+'output_upto_4_previous_version'
 
-desired_redshift=12
-BH_index=0
-#Lev Max 10 z 21 p_id=1001480254 ind=0
-#Lev Max 10 z 20 p_id=1001538158 ind=1
-#Lev Max 10 z 18 p_id=1004872384 ind=0
-#p_id=1002600983
-#p_id=1005831581
-#p_id=1056102916
+desired_redshift=22
+BH_index=7
 plane='xy'
 
 bh_IDs,output_redshift=arepo_package.get_particle_property(basePath,'ParticleIDs',5,desired_redshift,list_all=False)
@@ -310,14 +294,14 @@ print('dc',desired_center)
 #print(desired_center)
 
 perpendicular_vector=stellar_ang_mom(basePath,desired_redshift,desired_center)
-final_positions,final_property,output_redshift=extract_slice(basePath,0,desired_center,desired_redshift,'Temperature',planeofsky_dimensions=(100,100),lineofsight_dimension=20,plane=plane,orient=1)
-#print(final_positions)
+final_positions,final_property,output_redshift=extract_slice(basePath,0,desired_center,desired_redshift,'Velocity Magnitude',planeofsky_dimensions=(100,100),lineofsight_dimension=20,plane=plane,orient=1)
+
 fig, ax = plt.subplots(1,1,figsize=(11,9))
 
 ax.set_facecolor('xkcd:black')
-visualize(final_positions,final_property,300,'Temperature')
+visualize(final_positions,final_property,300,'Velocity Magnitude')
 ax.tick_params(labelsize=20)
-plt.title('Temeprature Level Max 11  z=%.1f'% output_redshift,size=15)
+plt.title('Velocity Magnitude Level Max 11  z=%.1f'% output_redshift,size=15)
 fig.savefig('Prof_Package_Test')
 
 
@@ -365,6 +349,8 @@ ax.set_xlabel('redshift',fontsize=15)
 plt.title('FOF Mass Level Max 9',size=15)
 fig.savefig('Prof_Package_Test')
 '''
+
+
 '''
 #-----Warning: Sublink merger trees have been computed only up to z=5. DO NOT select a root redshift less than 5, for now------------------------------------- 
 root_subhalo_index=1   

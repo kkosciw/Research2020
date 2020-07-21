@@ -282,14 +282,17 @@ uniform_run='density_and_metallicity_based_criterion_zoom_levelmin7_levelmax11_h
 #Use for Lev Max 11 only
 basePath=path_to_uniform_run+uniform_run+'output_upto_4_previous_version'
 
-desired_redshift=22
-BH_index=7
+
+
+#Make the profile plots
+desired_redshift=5
+BH_index=0
 plane='xy'
 
 bh_IDs,output_redshift=arepo_package.get_particle_property(basePath,'ParticleIDs',5,desired_redshift,list_all=False)
 #print(bh_IDs)
 desired_center=find_BH_position(basePath,desired_redshift,p_id=bh_IDs[BH_index],choose_most_massive=0)
-print('dc',desired_center)
+#print('dc',desired_center)
 #desired_center=find_FOF_position(basePath,desired_redshift,choose_most_massive=1)
 #print(desired_center)
 
@@ -303,74 +306,4 @@ visualize(final_positions,final_property,300,'Velocity Magnitude')
 ax.tick_params(labelsize=20)
 plt.title('Velocity Magnitude Level Max 11  z=%.1f'% output_redshift,size=15)
 fig.savefig('Prof_Package_Test')
-
-
-'''
-red=0.2
-fofmass,output_redshift=arepo_package.get_group_property(basePath,'GroupMass',red,list_all=True)
-fofpos,output_redshift=arepo_package.get_group_property(basePath,'GroupPos',red,list_all=False)
-print(len(fofmass))
-print(fofpos.shape)
-maxpos=numpy.where(fofmass==max(fofmass))
-print(maxpos)
-fofpos=fofpos[maxpos,:]
-print(fofpos)
-'''
-'''
-fig, ax = plt.subplots(1,1,figsize=(11,9))
-mets = []
-reds = []
-ids=[]
-fofmass=[]
-fofpos=[]
-zs   = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17]
-for red in zs:
-    #metallicity,output_redshift=line_plots(basePath,red,0,'Metallicity')
-    #bh_IDs,output_redshift=arepo_package.get_particle_property(basePath,'ParticleIDs',5,red,list_all=True)
-    fofmassin,output_redshift=arepo_package.get_group_property(basePath,'GroupMass',red,list_all=True)
-    fofposin,output_redshift=arepo_package.get_group_property(basePath,'GroupPos',red,list_all=False)
-    #metallicity=gaussian_filter1d(metallicity,sigma=1)
-    print(output_redshift)
-    #mets.append(numpy.nanmean(metallicity))
-    #ids.append(len(bh_IDs))
-    fofmass.append(max(fofmassin)*1e10)
-    fofpos.append(fofposin)
-    reds.append(output_redshift)
-
-maxpos=numpy.where(fofmass==max(fofmass))
-#print reds
-#print fofmass
-#plt.plot(reds,numpy.log10(mets))
-plt.plot(reds,numpy.log10(fofmass))
-plt.axhline(y=numpy.log10(5e10),color='r')
-#ax.set_ylabel('log gas metallicity $(Fe/H)/(Fe/H)_{\odot}$',fontsize=15)
-ax.set_ylabel('log FOF Mass ($M_{\odot}/h$)',fontsize=15)
-ax.set_xlabel('redshift',fontsize=15)
-plt.title('FOF Mass Level Max 9',size=15)
-fig.savefig('Prof_Package_Test')
-'''
-
-
-'''
-#-----Warning: Sublink merger trees have been computed only up to z=5. DO NOT select a root redshift less than 5, for now------------------------------------- 
-root_subhalo_index=1   
-root_redshift=19
-#------------------------Get the indices and snapshots of the most massive progenitors---------------------------
-Progenitor_SubhaloIndices,Progenitor_Snaps=arepo_package.get_sublink_progenitors_most_massive_branch(basePath,root_subhalo_index,root_redshift)
-#-----------------------------------------------------------------------------------------------------------------
-
-#------------------------Select the oldest progenitor and trace its descendants. -----------------------------------
-#------------------------Check if the descendant track matches the most massive progenitor track--------------------
-oldest_progenitor_subhalo_index=Progenitor_SubhaloIndices[-1]
-oldest_progenitor_snap=Progenitor_Snaps[-1]
-snap_list,redshift_list=arepo_package.get_snapshot_redshift_correspondence(basePath)
-oldest_progenitor_redshift=redshift_list[snap_list==oldest_progenitor_snap][0]
-Descendant_SubhaloIndices,Descendant_Snaps=arepo_package.get_sublink_descendants(basePath,oldest_progenitor_subhalo_index,oldest_progenitor_redshift)
-Descendant_SubhaloIndices_upto_progenitor=Descendant_SubhaloIndices[0:len(Progenitor_SubhaloIndices)]
-
-print("Progenitor indices are:",Progenitor_SubhaloIndices)
-print("All Descendant indices:",Descendant_SubhaloIndices)
-print("All Descendant indices upto the progenitor snapshot in reverse:",Descendant_SubhaloIndices_upto_progenitor[::-1])
-print ("Difference (If they are all 0, it is good. If not, there's a problem, report to Aklant):",Progenitor_SubhaloIndices-Descendant_SubhaloIndices_upto_progenitor[::-1])
-'''
 

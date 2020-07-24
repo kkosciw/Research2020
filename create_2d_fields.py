@@ -19,12 +19,14 @@ from scipy.ndimage import gaussian_filter,gaussian_filter1d
 
 import astro_constants as ac
 
+
+
 def find_BH_position(basePath,desired_redshift,p_id,choose_most_massive=0): 
     bh_IDs,output_redshift=arepo_package.get_particle_property(basePath,'ParticleIDs',5,desired_redshift,list_all=False)
     bh_positions,output_redshift=arepo_package.get_particle_property(basePath,'Coordinates',5,desired_redshift,list_all=False)
  
     bh_masses,output_redshift=arepo_package.get_particle_property(basePath,'Masses',5,desired_redshift,list_all=False)
-    #print(bh_positions,bh_masses)
+    
     if (choose_most_massive):
         center=bh_positions[bh_masses==numpy.amax(bh_masses)]
     else:
@@ -32,15 +34,29 @@ def find_BH_position(basePath,desired_redshift,p_id,choose_most_massive=0):
     return center
 
 def find_FOF_position(basePath,desired_redshift,choose_most_massive=0):
-    fofpos,output_redshift=arepo_package.get_group_property(basePath,'GroupPos',desired_redshift,list_all=True)
-    print(output_redshift)
+    fofpos,output_redshift=arepo_package.get_group_property(basePath,'GroupPos',desired_redshift,list_all=False)    
     fofmass,output_redshift=arepo_package.get_group_property(basePath,'GroupMass',desired_redshift,list_all=False)
     if (choose_most_massive):
         maxpos=numpy.where(fofmass==numpy.amax(fofmass))
         center=fofpos[maxpos,:]
     return center
 
+def find_SubHalo_position(basePath,desired_redshift,desired_index):
+    SubhaloGrNr,output_redshift=arepo_package.get_subhalo_property(basePath,'SubhaloGrNr',desired_redshift,list_all=False)
+    SubhaloPos,output_redshift=arepo_package.get_subhalo_property(basePath,'SubhaloPos',desired_redshift,list_all=False)
+    Subhalo_Indices=numpy.arange(len(SubhaloGrNr))
+    SH_Index=Subhalo_Indices[desired_index]
+    center=SubhaloPos[SH_Index]
+    center=numpy.reshape(center,(1,3))
+    #Can use SubhaloVmaxRad for analysis purposes
+    SubhaloVmaxRad,output_redshift=arepo_package.get_subhalo_property(basePath,'SubhaloVmaxRad',desired_redshift,list_all=False)
+    SubhaloRad=SubhaloVmaxRad[SH_Index]
+
+    
+    return center,SubhaloRad
+
 def orient_plane(positions,perpendicular_vector):
+    #Orienting the galaxy to be face-on or edge-on
     def mag(vector):
         return numpy.sqrt(sum(vector**2))    
     A=numpy.array([1,1,1])
@@ -64,8 +80,15 @@ def orient_plane(positions,perpendicular_vector):
     
     return new_positions
 
-def extract_slice(basePath,p_type,desired_center,desired_redshift,field,planeofsky_dimensions=(1000,1000),lineofsight_dimension=20,plane='xy',orient=0):
-    positions,output_redshift=arepo_package.get_particle_property(basePath,'Coordinates',p_type,desired_redshift,list_all=False)    
+def extract_slice(basePath,p_type,desired_center,desired_redshift,field,planeofsky_dimensions=(100,100),lineofsight_dimension=20,plane='xy',orient=0):
+    #Gets information on which particle property is desired and masks out any particles that are not within the box
+    positions,output_redshift=arepo_package.get_particle_property(basePath,'Coordinates',p_type,desired_redshift,list_all=False)       
+    #Subhalo Positions
+    #positions,output_redshift=arepo_package.get_subhalo_property(basePath,'SubhaloPos',desired_redshift,list_all=False)    
+    print(positions.shape)
+    if (field=='SHSFR'):
+        SubhaloSFR,output_redshift=arepo_package.get_subhalo_property(basePath,'SubhaloSFR',desired_redshift,list_all=False)
+        particle_property=SubhaloSFR
     if (field=='Density'):
         masses,output_redshift=arepo_package.get_particle_property(basePath,'Masses',p_type,desired_redshift,list_all=False)
         masses*=1e10 
@@ -73,7 +96,6 @@ def extract_slice(basePath,p_type,desired_center,desired_redshift,field,planeofs
     if (field=='Metallicity'):
         metallicity,output_redshift=arepo_package.get_particle_property(basePath,'GFM_Metallicity',p_type,desired_redshift,list_all=False)  
         metallicity/=0.0127
-        #print(metallicity)
         particle_property=metallicity        
     if (field=='Temperature'):
         internal_energy,output_redshift=arepo_package.get_particle_property(basePath,'InternalEnergy',p_type,desired_redshift,list_all=False)
@@ -82,7 +104,6 @@ def extract_slice(basePath,p_type,desired_center,desired_redshift,field,planeofs
         XH = 0.76
         mu=(4*ac.MP)/(1+3*XH+4*XH*electron_abundance)
         gas_temperature = g_minus_1*(internal_energy/ac.KB)*(10**10)*mu
-        #print(gas_temperature)
         particle_property=gas_temperature
     if (field=='Velocity Magnitude'):
         velocity,output_redshift=arepo_package.get_particle_property(basePath,'Velocities',p_type,desired_redshift,list_all=False) 
@@ -151,18 +172,18 @@ def visualize(final_positions,final_property,number_of_pixels,field):
                 proj_property.append(numpy.sum(final_property[mask])/pixel_volume)
             else:
                 proj_property.append(numpy.average(final_property[mask]))
-                #print(proj_property)                   
+    #The Density is the only property that won't have nans, the 1e-19 will not be plotted later, just useful for when the log needs to be taken                      
     proj_property=numpy.asarray(proj_property)
-    print(proj_property)
     proj_property[numpy.isnan(proj_property)]=1e-19
-    print(proj_property)
     Proj_property=proj_property.reshape(number_of_pixels,number_of_pixels)
+    #Helps with making the plots look better. Higher sigma = more smoothed plot
     Proj_property=gaussian_filter(Proj_property,sigma=1)
        
 
     if (field=='Density'):
         print("making density")
         #fig_object=ax.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=min(proj_property[proj_property>0]),vmax=Proj_property.max()),cmap='Greys_r')
+        #Allows for multiple plots to be on same scale
         fig_object=ax.pcolor(First,Second,Proj_property,norm=colors.LogNorm(vmin=1e3,vmax=1e7),cmap='Greys_r')
         cbar=fig.colorbar(fig_object,ax=ax)
         cbar.set_label('log gas density ($M_{\odot}/(cKpc/h)^3$)',fontsize=15)
@@ -201,6 +222,7 @@ def visualize(final_positions,final_property,number_of_pixels,field):
 
     
 def stellar_ang_mom(basePath,desired_redshift,desired_center,box_length=40):
+    #Calculating the angular momentum allows for the galaxy to be oriented face-on or edge-on
     p_type=4
     positions,output_redshift=arepo_package.get_particle_property(basePath,'Coordinates',p_type,desired_redshift,list_all=False)       
     masses,output_redshift=arepo_package.get_particle_property(basePath,'Masses',p_type,desired_redshift,list_all=False)
@@ -266,9 +288,11 @@ def line_plots(basePath,desired_redshift,p_type,field):
     
     return metallicity,output_redshift
  
-
+#Old Sims
 #path_to_uniform_run='/blue/lblecha/aklantbhowmick/NEW_AREPO_RUNS/'
+#New Sims
 path_to_uniform_run='/blue/lblecha/aklantbhowmick/GAS_BASED_SEED_MODEL_ZOOM_RUNS4/'
+
 #Old Sims
 #uniform_run='L25n128MUSIC_rerun_zoom_levelmax9_haloindex100_redshift0.00/AREPO'
 #uniform_run='L25n128MUSIC_rerun_zoom_levelmax10_haloindex100_redshift0.00/AREPO'
@@ -285,25 +309,95 @@ basePath=path_to_uniform_run+uniform_run+'output_upto_4_previous_version'
 
 
 #Make the profile plots
-desired_redshift=5
-BH_index=0
+
+#desired_redshift=5
+#BH_index=0
+#desired_index=0
 plane='xy'
 
-bh_IDs,output_redshift=arepo_package.get_particle_property(basePath,'ParticleIDs',5,desired_redshift,list_all=False)
-#print(bh_IDs)
-desired_center=find_BH_position(basePath,desired_redshift,p_id=bh_IDs[BH_index],choose_most_massive=0)
-#print('dc',desired_center)
+#bh_IDs,output_redshift=arepo_package.get_particle_property(basePath,'ParticleIDs',5,desired_redshift,list_all=False)
+#desired_center=find_BH_position(basePath,desired_redshift,p_id=bh_IDs[BH_index],choose_most_massive=1)
 #desired_center=find_FOF_position(basePath,desired_redshift,choose_most_massive=1)
-#print(desired_center)
+#desired_center,shrad=find_SubHalo_position(basePath,desired_redshift,desired_index)
 
-perpendicular_vector=stellar_ang_mom(basePath,desired_redshift,desired_center)
-final_positions,final_property,output_redshift=extract_slice(basePath,0,desired_center,desired_redshift,'Velocity Magnitude',planeofsky_dimensions=(100,100),lineofsight_dimension=20,plane=plane,orient=1)
 
-fig, ax = plt.subplots(1,1,figsize=(11,9))
 
-ax.set_facecolor('xkcd:black')
-visualize(final_positions,final_property,300,'Velocity Magnitude')
-ax.tick_params(labelsize=20)
-plt.title('Velocity Magnitude Level Max 11  z=%.1f'% output_redshift,size=15)
+desired_redshift=[5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
+desired_index=[0,1,0,328,0,0,0,0,123,38,0,13,16,1,1,1,2,7,10]
+desired_center,maxrad=find_SubHalo_position(basePath,5,0)
+halfrad=maxrad/2
+qrtrad=maxrad/4
+
+final_prop_full=[]
+final_prop_half=[]
+final_prop_qrt=[]
+for  dr,shind in zip(desired_redshift,desired_index):
+    desired_center,shrad=find_SubHalo_position(basePath,dr,shind)
+    perpendicular_vector=stellar_ang_mom(basePath,dr,desired_center)
+    final_positions,final_property,output_redshift=extract_slice(basePath,0,desired_center,dr,'Density',planeofsky_dimensions=(200,200),lineofsight_dimension=200,plane=plane,orient=1)
+
+    #print(final_positions.shape)
+    part_rad=numpy.sqrt((final_positions[:,0]**2)+(final_positions[:,1]**2)+(final_positions[:,2]**2))
+    rad_mask_full=part_rad<maxrad
+
+    xposrad = final_positions[:,0]
+    yposrad = final_positions[:,1]
+    zposrad = final_positions[:,2]
+
+    xposrad = xposrad[rad_mask_full]
+    yposrad = yposrad[rad_mask_full]
+    zposrad = zposrad[rad_mask_full]
+
+    #final_prop_full.append(numpy.average(final_property[rad_mask_full]))
+    #Use for Density only
+    final_prop_full.append(numpy.average(numpy.sum(final_property[rad_mask_full])/(4/3*numpy.pi*(maxrad**3))))
+   
+    rad_mask_half=part_rad<halfrad
+
+    xposrad = final_positions[:,0]
+    yposrad = final_positions[:,1]
+    zposrad = final_positions[:,2]
+
+    xposrad = xposrad[rad_mask_half]
+    yposrad = yposrad[rad_mask_half]
+    zposrad = zposrad[rad_mask_half]
+
+    #final_prop_half.append(numpy.average(final_property[rad_mask_half]))
+    #Use for Density only
+    final_prop_half.append(numpy.average(numpy.sum(final_property[rad_mask_half])/(4/3*numpy.pi*(halfrad**3))))
+
+    rad_mask_qrt=part_rad<qrtrad
+
+    xposrad = final_positions[:,0]
+    yposrad = final_positions[:,1]
+    zposrad = final_positions[:,2]
+
+    xposrad = xposrad[rad_mask_qrt]
+    yposrad = yposrad[rad_mask_qrt]
+    zposrad = zposrad[rad_mask_qrt]
+
+    #final_prop_qrt.append(numpy.average(final_property[rad_mask_qrt]))
+    #Use for Density only
+    final_prop_qrt.append(numpy.average(numpy.sum(final_property[rad_mask_qrt])/(4/3*numpy.pi*(qrtrad**3))))
+
+
+
+
+fig, ax = plt.subplots(1,1)
+#ax.set_facecolor('xkcd:black')
+#visualize(final_positions,final_property,300,'Density')
+#ax.tick_params(labelsize=20)
+ax.set_ylabel('log Density $M_{\odot}/(cKpc/h)^3$')
+ax.set_yscale('log')
+ax.plot(desired_redshift,final_prop_full,label='Radius=%.1f'%maxrad,color='red')
+ax.plot(desired_redshift,final_prop_half,label='Radius=%.1f'%halfrad,color='blue')
+ax.plot(desired_redshift,final_prop_qrt,label='Radius=%.1f'%qrtrad,color='green')
+ax.set_xlabel('redshift')
+plt.legend(loc='upper right')
+plt.title('Avg Density Lev Max 11',size=15)
+plt.tight_layout()
 fig.savefig('Prof_Package_Test')
+plt.close()
+
+
 
